@@ -1,0 +1,13 @@
+{
+  "name": "youtube-converter-desktop",
+  "version": "0.1.0",
+  "description": "Desktop app: convert video (URL or file) to MP3",
+  "main": "main.js",
+  "private": true,
+  "scripts": {
+    "start": "electron ."
+  },
+  "devDependencies": {
+    "electron": "^33.4.11"
+  }
+}

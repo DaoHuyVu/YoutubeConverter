@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Video → MP3 Converter</title>
+    <link rel="icon" type="image/png" href="icon.png" />
+    <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+    <main class="app">
+        <header>
+            <h1>Video → MP3</h1>
+            <p class="subtitle">Chuyển video từ URL YouTube hoặc file local sang MP3</p>
+        </header>
+
+        <div class="tabs">
+            <button class="tab active" data-tab="url">Từ URL</button>
+            <button class="tab" data-tab="file">Từ file</button>
+        </div>
+
+        <section class="panel active" id="panel-url">
+            <label for="url-input">URL video</label>
+            <input id="url-input" type="text" placeholder="https://www.youtube.com/watch?v=..." />
+            <button id="convert-url" class="primary">Chuyển đổi</button>
+        </section>
+
+        <section class="panel" id="panel-file">
+            <div id="drop-zone" class="drop-zone">
+                <p>Kéo thả file video vào đây, hoặc</p>
+                <label class="file-btn">
+                    Chọn file
+                    <input id="file-input" type="file" accept="video/*" hidden />
+                </label>
+                <p class="filename" id="selected-file"></p>
+            </div>
+            <button id="convert-file" class="primary" disabled>Chuyển đổi</button>
+        </section>
+
+        <section class="status" id="status" hidden>
+            <div class="status-header">
+                <div class="spinner" id="spinner"></div>
+                <p id="status-text"></p>
+            </div>
+            <div class="progress-wrap">
+                <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+                <div class="progress-meta">
+                    <span id="progress-percent">0%</span>
+                    <span id="progress-extra"></span>
+                </div>
+            </div>
+        </section>
+
+        <section class="result" id="result" hidden>
+            <p class="success">Xong!</p>
+            <a id="download-link" class="download-btn" download>Tải MP3</a>
+        </section>
+
+        <section class="error" id="error" hidden></section>
+    </main>
+    <script src="app.js"></script>
+</body>
+</html>
