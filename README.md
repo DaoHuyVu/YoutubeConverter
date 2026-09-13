@@ -40,6 +40,11 @@ Electron sẽ tự spawn backend (port 3000) và mở cửa sổ ứng dụng.
 | Var | Mặc định | Ý nghĩa |
 |---|---|---|
 | `YT_JS_RUNTIME` | `node` | Truyền vào `--js-runtimes` để yt-dlp giải các format YouTube mới cần JS runtime. Có thể đổi thành `deno` nếu đã cài deno. |
+| `YT_DLP_BIN` | tự dò | Đường dẫn tới `yt-dlp`, ghi đè phần tự dò. |
+| `FFMPEG_BIN` | tự dò | Đường dẫn tới `ffmpeg`, ghi đè phần tự dò. |
+| `FFPROBE_BIN` | tự dò | Đường dẫn tới `ffprobe`, ghi đè phần tự dò. |
+
+**Không cần thêm vào PATH:** backend tìm công cụ theo PATH trước, nếu không có thì dò các thư mục hay dùng — `backend/`, thư mục gốc project, `%USERPROFILE%\Programs\`, `%USERPROFILE%\bin\`, `%LOCALAPPDATA%\Programs\<tên>\`, `C:\Program Files\<tên>\`. Đường dẫn thực tế được in trong log lúc khởi động và hiện trong section debug.
 
 **Cookies (bắt buộc để né bot check của YouTube):**
 
@@ -57,6 +62,32 @@ Backend tự phát hiện theo thứ tự:
 
 File `backend/cookies.txt` đã được thêm vào `.gitignore` để không lỡ push lên git.
 
+## Debug khi convert lỗi
+
+Khi một lần convert thất bại, app mở section **"Chi tiết lỗi (debug)"** ngay dưới thông báo lỗi, gồm:
+
+- **Nguyên nhân / cách xử lý** — gợi ý cụ thể (thiếu yt-dlp, YouTube đòi cookies, rate-limit 429, mất mạng...)
+- **Request** — endpoint, HTTP status, API base, input
+- **Backend** — còn sống không, uptime, port, chế độ cookies, thư mục output
+- **Công cụ ngoài** — yt-dlp / ffmpeg / ffprobe / JS runtime có hay thiếu, kèm version và đường dẫn
+- **Lệnh đã chạy** + **stderr** / **stdout** của yt-dlp hoặc ffmpeg
+- **Log backend** và toàn bộ event NDJSON nhận được
+
+Nút **Copy báo cáo** copy tất cả dưới dạng JSON, **Kiểm tra lại backend** probe lại backend mà không cần convert lại.
+
+Ngoài ra app kiểm tra ngay lúc mở: nếu thiếu công cụ, banner vàng hiện ở đầu trang trước khi bấm convert.
+
+Endpoint thô: [`GET /api/diagnostics`](http://localhost:3000/api/diagnostics).
+
+### "Failed to fetch" nghĩa là gì
+
+Đây là lỗi của trình duyệt khi request **không tới được backend**, không phải lỗi convert. Hai nguyên nhân hay gặp:
+
+1. **Backend chưa chạy hoặc đã chết** — mở lại app desktop, hoặc `cd backend; bun run index.ts`. Nếu cổng 3000 đang bị chiếm, backend sẽ báo rõ và thoát.
+2. **Mở `frontend/index.html` trực tiếp bằng `file://`** — trang không gọi được API tương đối. Hãy mở [http://localhost:3000](http://localhost:3000) (backend tự serve giao diện) hoặc chạy qua Electron.
+
+Section debug tự phân biệt hai trường hợp này và in ra đúng hướng xử lý.
+
 ## Chạy backend riêng (chế độ web)
 
 ```powershell
@@ -64,6 +95,14 @@ cd backend; bun run index.ts
 ```
 
 Mở [http://localhost:3000](http://localhost:3000).
+
+## Test
+
+```powershell
+cd backend; bun test
+```
+
+[backend/server.test.ts](backend/server.test.ts) kiểm tra rằng khi thiếu yt-dlp/ffmpeg, backend trả event lỗi **mà không chết** — đây chính là bug từng khiến app báo "Failed to fetch" ở lần convert thứ hai.
 
 ## API
 

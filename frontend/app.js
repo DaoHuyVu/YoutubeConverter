@@ -1,6 +1,7 @@
-const API_BASE = window.location.origin.startsWith('file:')
-    ? 'http://localhost:3000'
-    : '';
+// window.location.origin trả về chuỗi "null" khi mở bằng file://, nên phép so
+// sánh cũ (origin.startsWith('file:')) luôn sai và API_BASE thành '' → fetch
+// tương đối trên file:// và báo "Failed to fetch". Debug tính sẵn theo protocol.
+const API_BASE = window.Debug.apiBase;
 
 const $ = (id) => document.getElementById(id);
 
@@ -18,6 +19,7 @@ const urlInput = $('url-input');
 const fileInput = $('file-input');
 const dropZone = $('drop-zone');
 const selectedFileEl = $('selected-file');
+const debugEl = $('debug');
 
 let selectedFile = null;
 
@@ -42,6 +44,7 @@ function resetOutput() {
     statusEl.hidden = true;
     resultEl.hidden = true;
     errorEl.hidden = true;
+    debugEl.hidden = true;
     progressFill.style.width = '0%';
     progressPercent.textContent = '0%';
     progressExtra.textContent = '';
@@ -99,9 +102,18 @@ function updateProgress(event) {
 }
 
 async function streamNdjson(response, onEvent) {
+    window.Debug.setContext({
+        httpStatus: `${response.status} ${response.statusText}`,
+        responseContentType: response.headers.get('content-type') || '',
+    });
+
     if (!response.ok && response.headers.get('content-type')?.includes('json')) {
         const data = await response.json().catch(() => ({}));
         throw new Error(data.error || `HTTP ${response.status}`);
+    }
+    if (!response.ok) {
+        const text = await response.text().catch(() => '');
+        throw new Error(text.trim() || `HTTP ${response.status} ${response.statusText}`);
     }
     if (!response.body) throw new Error('No response body');
 
@@ -129,22 +141,30 @@ async function streamNdjson(response, onEvent) {
     }
 }
 
-async function runConversion(fetchPromise) {
+async function runConversion(fetchPromise, requestContext) {
     showStatus('Đang khởi tạo...');
+    window.Debug.reset();
+    window.Debug.setContext(requestContext);
     try {
         const res = await fetchPromise;
         let final = null;
         let lastError = null;
         await streamNdjson(res, (event) => {
+            window.Debug.addEvent(event);
             if (event.type === 'progress') updateProgress(event);
             else if (event.type === 'done') final = event;
-            else if (event.type === 'error') lastError = event.message;
+            else if (event.type === 'error') {
+                lastError = event.message;
+                // detail chứa command/args/exit code/stderr → panel debug hiển thị
+                window.Debug.setContext({ errorDetail: event.detail || null });
+            }
         });
         if (lastError) throw new Error(lastError);
-        if (!final) throw new Error('Không nhận được kết quả từ server');
+        if (!final) throw new Error('Không nhận được kết quả từ server (stream kết thúc sớm)');
         showResult(final.downloadUrl, final.filename);
     } catch (err) {
         showError(err.message || String(err));
+        window.Debug.report(err);
     } finally {
         setBusy(false);
     }
@@ -161,7 +181,7 @@ convertUrlBtn.addEventListener('click', () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url }),
-    }));
+    }), { method: 'POST', endpoint: `${API_BASE}/api/convert/url`, input: url });
 });
 
 function pickFile(file) {
@@ -200,5 +220,9 @@ convertFileBtn.addEventListener('click', () => {
             'X-Filename': encodeURIComponent(selectedFile.name),
         },
         body: selectedFile,
-    }));
+    }), {
+        method: 'POST',
+        endpoint: `${API_BASE}/api/convert/file`,
+        input: `${selectedFile.name} (${(selectedFile.size / 1024 / 1024).toFixed(2)} MB)`,
+    });
 });
