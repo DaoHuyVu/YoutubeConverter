@@ -4,7 +4,11 @@ const path = require('node:path');
 const http = require('node:http');
 const fs = require('node:fs');
 
-const DOWNLOADS_ROOT = path.resolve(__dirname, '..', 'backend', 'public', 'downloads');
+// Bản cài đặt: thư mục cài có thể bị xoá khi gỡ app, nên file MP3 lưu vào
+// thư mục Music của user, cookies.txt đặt trong userData.
+const DOWNLOADS_ROOT = app.isPackaged
+    ? path.join(app.getPath('music'), 'Video to MP3')
+    : path.resolve(__dirname, '..', 'backend', 'public', 'downloads');
 
 ipcMain.handle('show-in-folder', (_event, relativeUrl) => {
     if (typeof relativeUrl !== 'string') return false;
@@ -22,14 +26,30 @@ let backendProcess = null;
 let mainWindow = null;
 
 function startBackend() {
-    const backendDir = path.resolve(__dirname, '..', 'backend');
-    const bunCmd = process.platform === 'win32' ? 'bun.exe' : 'bun';
-
-    backendProcess = spawn(bunCmd, ['run', 'index.ts'], {
-        cwd: backendDir,
-        env: { ...process.env, PORT: String(BACKEND_PORT) },
-        windowsHide: true,
-    });
+    if (app.isPackaged) {
+        const res = process.resourcesPath;
+        const backendExe = path.join(res, 'backend', 'backend.exe');
+        backendProcess = spawn(backendExe, [], {
+            cwd: path.dirname(backendExe),
+            env: {
+                ...process.env,
+                PORT: String(BACKEND_PORT),
+                FRONTEND_DIR: path.join(res, 'frontend'),
+                TOOLS_DIR: path.join(res, 'tools'),
+                DOWNLOADS_DIR: DOWNLOADS_ROOT,
+                COOKIES_FILE: path.join(app.getPath('userData'), 'cookies.txt'),
+            },
+            windowsHide: true,
+        });
+    } else {
+        const backendDir = path.resolve(__dirname, '..', 'backend');
+        const bunCmd = process.platform === 'win32' ? 'bun.exe' : 'bun';
+        backendProcess = spawn(bunCmd, ['run', 'index.ts'], {
+            cwd: backendDir,
+            env: { ...process.env, PORT: String(BACKEND_PORT) },
+            windowsHide: true,
+        });
+    }
 
     backendProcess.stdout.on('data', (d) => process.stdout.write(`[backend] ${d}`));
     backendProcess.stderr.on('data', (d) => process.stderr.write(`[backend] ${d}`));

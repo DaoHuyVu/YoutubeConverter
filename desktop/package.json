@@ -1,13 +1,49 @@
 {
   "name": "youtube-converter-desktop",
+  "productName": "Video to MP3",
   "version": "0.1.0",
   "description": "Desktop app: convert video (URL or file) to MP3",
+  "author": "Dao Huy Vu",
   "main": "main.js",
   "private": true,
   "scripts": {
-    "start": "electron ."
+    "start": "electron .",
+    "prepare:dist": "node scripts/prepare.js",
+    "dist": "npm run prepare:dist && electron-builder --win nsis --x64"
   },
   "devDependencies": {
-    "electron": "^33.4.11"
+    "electron": "^33.4.11",
+    "electron-builder": "^26.15.3"
+  },
+  "build": {
+    "appId": "com.vudh.videotomp3",
+    "productName": "Video to MP3",
+    "directories": {
+      "output": "dist",
+      "buildResources": "assets"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "assets/**"
+    ],
+    "extraResources": [
+      { "from": "staging/backend", "to": "backend" },
+      { "from": "staging/tools", "to": "tools" },
+      { "from": "../frontend", "to": "frontend" }
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "assets/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Video to MP3",
+      "artifactName": "VideoToMP3-Setup-${version}.exe"
+    }
   }
 }

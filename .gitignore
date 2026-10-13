@@ -4,3 +4,5 @@ backend/cookies.txt
 *.log
 .DS_Store
 desktop/node_modules
+desktop/staging/
+desktop/dist/

@@ -14,9 +14,15 @@ const home = os.homedir();
 const localAppData = process.env.LOCALAPPDATA || path.join(home, 'AppData', 'Local');
 const exe = process.platform === 'win32' ? '.exe' : '';
 
+// Bản build bằng `bun build --compile` có import.meta.dir là ổ ảo (B:\~BUN\root),
+// nên desktop app đóng gói truyền đường dẫn thật qua các env TOOLS_DIR,
+// COOKIES_FILE, FRONTEND_DIR, DOWNLOADS_DIR.
+const TOOLS_DIR = process.env.TOOLS_DIR;
+
 /** Các chỗ hay cài công cụ nhưng không nằm trong PATH. */
 function fallbackPaths(name: string): string[] {
     return [
+        ...(TOOLS_DIR ? [path.join(TOOLS_DIR, `${name}${exe}`)] : []),
         path.join(import.meta.dir, `${name}${exe}`),
         path.join(import.meta.dir, '..', `${name}${exe}`),
         path.join(home, 'Programs', `${name}${exe}`),
@@ -44,14 +50,14 @@ const YT_DLP_BIN = process.env.YT_DLP_BIN || findTool('yt-dlp');
 const FFMPEG_BIN = process.env.FFMPEG_BIN || findTool('ffmpeg');
 const FFPROBE_BIN = process.env.FFPROBE_BIN || findTool('ffprobe');
 
-const cookiesFile = path.resolve(import.meta.dir, './cookies.txt');
+const cookiesFile = process.env.COOKIES_FILE || path.resolve(import.meta.dir, './cookies.txt');
 const hasCookiesFile = fs.existsSync(cookiesFile);
 const cookieArgs = hasCookiesFile
     ? ['--cookies', cookiesFile]
     : ['--cookies-from-browser', 'chrome'];
 
-const frontendDir = path.resolve(import.meta.dir, '../frontend');
-const downloadsRoot = path.resolve(import.meta.dir, './public/downloads');
+const frontendDir = process.env.FRONTEND_DIR || path.resolve(import.meta.dir, '../frontend');
+const downloadsRoot = process.env.DOWNLOADS_DIR || path.resolve(import.meta.dir, './public/downloads');
 fs.mkdirSync(downloadsRoot, { recursive: true });
 
 app.use(express.json({ limit: '10mb' }));
@@ -640,7 +646,7 @@ app.get('/api/diagnostics', (_req, res) => {
     if (!tools.ffmpeg.available) problems.push(`Chưa có ffmpeg ("${FFMPEG_BIN}") — không convert được file local.`);
     if (!tools.ffprobe.available) problems.push(`Chưa có ffprobe ("${FFPROBE_BIN}") — vẫn convert được nhưng không hiện % tiến độ.`);
     if (!tools.jsRuntime.available) problems.push(`Chưa có JS runtime "${YT_JS_RUNTIME}" — YouTube có thể chặn yt-dlp.`);
-    if (!hasCookiesFile) problems.push('Chưa có backend/cookies.txt — YouTube có thể yêu cầu xác minh "not a bot".');
+    if (!hasCookiesFile) problems.push(`Chưa có ${cookiesFile} — YouTube có thể yêu cầu xác minh "not a bot".`);
 
     res.json({
         ok: problems.length === 0,

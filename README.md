@@ -33,6 +33,16 @@ cd desktop; npm start
 
 Electron sẽ tự spawn backend (port 3000) và mở cửa sổ ứng dụng.
 
+## Build file cài đặt (.exe)
+
+```powershell
+cd desktop; npm run dist
+```
+
+Kết quả: `desktop/dist/VideoToMP3-Setup-<version>.exe`. Script [desktop/scripts/prepare.js](desktop/scripts/prepare.js) compile backend thành `backend.exe` (máy cài không cần Bun) và copy `yt-dlp.exe`, `ffmpeg.exe`, `ffprobe.exe` từ máy build vào bộ cài (lấy từ PATH, hoặc env `YT_DLP_BIN` / `FFMPEG_BIN` / `FFPROBE_BIN`).
+
+Bản cài đặt lưu MP3 vào `%USERPROFILE%\Music\Video to MP3\`, đọc cookies từ `%APPDATA%\Video to MP3\cookies.txt`. `backend/cookies.txt` **không** được đóng gói vào bộ cài.
+
 ## Cấu hình yt-dlp
 
 **Env vars:**
