@@ -251,8 +251,6 @@ app.post('/api/convert/url', (req: Request, res: Response) => {
 
     const ytArgs = [
         '--no-playlist',
-        '--js-runtimes', YT_JS_RUNTIME,
-        ...cookieArgs,
         '-x',
         '--audio-format', 'mp3',
         '-o', outputTemplate,
